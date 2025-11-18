@@ -1,0 +1,17 @@
+services:
+  sahith-bot:
+    build: .
+    container_name: sahith-bot
+    ports:
+      - "8000:8000"
+    environment:
+      UVICORN_HOST: 0.0.0.0
+      UVICORN_PORT: 8000
+      UVICORN_WORKERS: 2
+      UVICORN_RELOAD: "false"
+    volumes:
+      - data:/app/data
+    restart: unless-stopped
+volumes:
+  data:
+    driver: local
