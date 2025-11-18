@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from sqlalchemy import create_engine
-from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -25,12 +24,4 @@ def init_db() -> None:
     """Create database tables if they do not exist."""
     from . import models  # noqa: F401  # pylint: disable=unused-import
 
-    try:
-        Base.metadata.create_all(bind=engine, checkfirst=True)
-    except OperationalError as exc:  # pragma: no cover - defensive guard
-        # When the SQLite file is mounted via a persistent Docker volume the
-        # metadata "create" call can race against an existing schema and emit
-        # a noisy "table already exists" error. Treat that case as benign so
-        # the API can continue to boot.
-        if "already exists" not in str(exc).lower():
-            raise
+    Base.metadata.create_all(bind=engine)

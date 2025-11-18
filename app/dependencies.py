@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import Generator
+from contextlib import contextmanager
+from typing import Iterator
 
 from sqlalchemy.orm import Session
 
 from .database import SessionLocal
 
 
-def get_db() -> Generator[Session, None, None]:
-    """Yield a SQLAlchemy session for FastAPI dependencies."""
-
+@contextmanager
+def get_db() -> Iterator[Session]:
     db = SessionLocal()
     try:
         yield db
