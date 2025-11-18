@@ -9,7 +9,8 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 from . import models, schemas
-from .database import get_db, init_db
+from .database import init_db
+from .dependencies import get_db
 from .services.processing import TranscriptProcessor
 
 app = FastAPI(title="Sahith AI Bot", version="0.1.0")
