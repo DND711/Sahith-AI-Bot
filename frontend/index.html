@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sahith AI Bot</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background: #f8fafc;
+      }
+      header {
+        background: #1f2937;
+        color: #fff;
+        padding: 1rem 2rem;
+      }
+      main {
+        padding: 2rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.5rem;
+      }
+      section {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 18px rgba(15, 23, 42, 0.08);
+      }
+      h2 {
+        margin-top: 0;
+      }
+      label {
+        font-size: 0.9rem;
+        color: #475569;
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+      input,
+      textarea {
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid #cbd5f5;
+        padding: 0.6rem;
+        margin-bottom: 1rem;
+      }
+      button {
+        background: #2563eb;
+        color: #fff;
+        padding: 0.6rem 1.2rem;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      pre {
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 1rem;
+        border-radius: 8px;
+        white-space: pre-wrap;
+      }
+      ul {
+        padding-left: 1.3rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Sahith AI Bot — Shadow Mode Console</h1>
+      <p>Create meetings, upload transcripts, and get instant insights.</p>
+    </header>
+    <main>
+      <section>
+        <h2>Create Meeting</h2>
+        <label for="title">Title</label>
+        <input id="title" placeholder="Client sync" />
+        <label for="description">Description</label>
+        <textarea id="description" rows="3" placeholder="Optional context"></textarea>
+        <button onclick="createMeeting()">Save meeting</button>
+        <p id="create-status"></p>
+      </section>
+      <section>
+        <h2>Meetings</h2>
+        <ul id="meeting-list"></ul>
+      </section>
+      <section>
+        <h2>Upload Transcript</h2>
+        <label for="meeting-id">Meeting ID</label>
+        <input id="meeting-id" type="number" />
+        <label for="transcript">Transcript text</label>
+        <textarea id="transcript" rows="10" placeholder="Paste transcript here..."></textarea>
+        <button onclick="uploadTranscript()">Process</button>
+        <p id="transcript-status"></p>
+      </section>
+      <section>
+        <h2>Summary</h2>
+        <pre id="summary-output">Select a meeting to view insights.</pre>
+      </section>
+    </main>
+    <script>
+      const api = window.location.origin.replace(/\/$/, "")
+        .replace(/\/$/, "")
+        .replace(/\/app$/, "");
+
+      async function createMeeting() {
+        const title = document.getElementById("title").value;
+        const description = document.getElementById("description").value;
+        const resp = await fetch(`${api}/meetings`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, description }),
+        });
+        if (resp.ok) {
+          document.getElementById("create-status").innerText = "Meeting created";
+          document.getElementById("title").value = "";
+          document.getElementById("description").value = "";
+          loadMeetings();
+        } else {
+          document.getElementById("create-status").innerText = "Failed to create meeting";
+        }
+      }
+
+      async function loadMeetings() {
+        const resp = await fetch(`${api}/meetings`);
+        const meetings = await resp.json();
+        const list = document.getElementById("meeting-list");
+        list.innerHTML = "";
+        meetings.forEach((meeting) => {
+          const li = document.createElement("li");
+          li.textContent = `#${meeting.id} — ${meeting.title}`;
+          li.style.cursor = "pointer";
+          li.onclick = () => loadSummary(meeting.id);
+          list.appendChild(li);
+        });
+      }
+
+      async function uploadTranscript() {
+        const meetingId = document.getElementById("meeting-id").value;
+        const transcript = document.getElementById("transcript").value;
+        const resp = await fetch(`${api}/meetings/${meetingId}/transcript`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transcript_text: transcript }),
+        });
+        if (resp.ok) {
+          document.getElementById("transcript-status").innerText = "Transcript processed";
+          const summary = await resp.json();
+          renderSummary(summary);
+        } else {
+          document.getElementById("transcript-status").innerText = "Processing failed";
+        }
+      }
+
+      async function loadSummary(id) {
+        const resp = await fetch(`${api}/meetings/${id}/summary`);
+        if (resp.ok) {
+          const summary = await resp.json();
+          renderSummary(summary);
+          document.getElementById("meeting-id").value = id;
+        }
+      }
+
+      function renderSummary(data) {
+        const { meeting, summary, action_items, suggestions } = data;
+        const lines = [];
+        lines.push(`#${meeting.id} — ${meeting.title}`);
+        if (summary) {
+          lines.push(`TL;DR: ${summary.tldr}`);
+          lines.push(`Discussion:\n${summary.discussion}`);
+          lines.push(`Decisions:\n${summary.decisions}`);
+          lines.push(`Risks:\n${summary.risks}`);
+        }
+        lines.push("\nAction items:");
+        action_items.forEach((item, idx) => {
+          lines.push(`${idx + 1}. ${item.description}`);
+        });
+        lines.push("\nSuggestions for Sahith:");
+        suggestions.forEach((suggestion, idx) => {
+          lines.push(`${idx + 1}. ${suggestion.content}`);
+        });
+        document.getElementById("summary-output").innerText = lines.join("\n");
+      }
+
+      loadMeetings();
+    </script>
+  </body>
+</html>
