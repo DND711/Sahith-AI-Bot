@@ -8,6 +8,7 @@ from .database import SessionLocal
 
 
 def get_db() -> Iterator[Session]:
+    """Yield a scoped SQLAlchemy session for each request."""
     db = SessionLocal()
     try:
         yield db
